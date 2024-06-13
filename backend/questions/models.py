@@ -1,10 +1,10 @@
 from django.db import models
-from django.contrib.auth.models import User
-from django.utils import timezone
+from quizzes.models import Quiz
 # Create your models here.
 
 class Question(models.Model):
     text = models.TextField()
+    quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name = 'questions')
 
     def __str__(self) -> str:
         return self.text
