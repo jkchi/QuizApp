@@ -4,7 +4,7 @@ from .models import Question, Option
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
-        fields = ["id", "text"]
+        fields = ["id", "text",'quiz']
 
 class OptionSerializer(serializers.ModelSerializer):
     class Meta:
