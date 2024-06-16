@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    # documentation generation
+    'drf_yasg',
     'rest_framework',
     'corsheaders',
     "quizzes",
