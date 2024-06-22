@@ -1,9 +1,7 @@
-from django.contrib.auth.models import User
-from rest_framework import viewsets
+from rest_framework import viewsets,status
 from .serializer import QuestionSerializer,OptionSerializer
 from rest_framework.permissions import IsAuthenticated, AllowAny,IsAdminUser
 from .models import Question,Option
-from rest_framework import viewsets, status
 from rest_framework.response import Response
 
 # self define api in viewset
