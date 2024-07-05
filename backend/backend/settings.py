@@ -50,6 +50,10 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework',
     'corsheaders',
+    
+    # all nested admin
+    'nested_admin',
+    
     "quizzes",
     "questions",
     "accounts",
