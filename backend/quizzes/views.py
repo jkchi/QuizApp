@@ -14,6 +14,8 @@ from drf_yasg.utils import swagger_auto_schema
 from questions.serializer import QuestionSerializer
 from questions.models import *
 
+# all atomic db write
+from django.db import transaction
 
 
 
@@ -32,58 +34,51 @@ class QuizViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
     
     @swagger_auto_schema(
-        method='post',
-        request_body=QuestionSerializer(many=True),
-        responses={201: QuestionSerializer(many=True)}
-    )
-    
-    
+    method='post',
+    request_body=QuestionSerializer(many=True),  # Correct as it expects a list of questions
+    responses={
+        200: QuestionSerializer(many=True, read_only=True),  # Use 200 OK for successful bulk update
+        400: 'Error response'  # Describe the error response format
+    }
+    )    
     @action(detail=True, methods=['post'])
-    def bulk_create_questions_options(self, request):        
-        """
-        Create multiple questions and their corresponding options for a given quiz.
+    def bulk_edit_questions_options(self, request, pk = None):        
 
-        This method parses the `pk` from the URL to get the current `Quiz` object
-        and then creates multiple `Question` objects associated with the `Quiz`.
-        For each `Question` object, multiple `Option` objects are created.
+        with transaction.atomic():
+            quiz = self.get_object()
+            existing_question_ids = set([question.id for question in quiz.questions.all()])
+            questions_data = request.data
+            call_back_data = []
+            errors = []
+            for question_data in questions_data:
+                question_data['quiz'] = quiz.id
+                
+                if "id" in question_data:
+                    question = Question.objects.get(id=question_data['id'])
+                    
+                    # Passing this object to the serializer tells DRF that 
+                    # you intend to update this existing object rather than create a new one.
+                    question_serializer = QuestionSerializer(question, data=question_data)
+                    # remove question id if update a question
+                    existing_question_ids.discard(question_data["id"])
+                else:
+                    question_serializer = QuestionSerializer(data=question_data)
+                
+                if question_serializer.is_valid():
+                
+                    # call serializer.create/update based on if question id in request
+                    question_serializer.save()  
+                    call_back_data.append(question_serializer.data)
+                else:
+                    errors.append(question_serializer.errors)
+            
+            if errors:
+                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                for left_question_id in existing_question_ids:
+                    Question.objects.get(id=left_question_id).delete()
 
-        Expected request data format:
-        [
-            {
-                "text": "Question 1",
-                "options": [
-                    {"text": "Option 1", "is_answer": false},
-                    {"text": "Option 2", "is_answer": true}
-                ]
-            },
-            {
-                "text": "Question 2",
-                "options": [
-                    {"text": "Option 1", "is_answer": true},
-                    {"text": "Option 2", "is_answer": false}
-                ]
-            }
-        ]
-
-        Args:
-            request (Request): The HTTP request containing a list of questions
-                            and their options to be created.
-
-        Returns:
-            Response: A Response object with HTTP status 201 (Created) if the questions
-                    and options were successfully created.
-    """
-        
-        # get the current object
-        # this method will get the pk from url and parse it
-        quiz = self.get_object()
-        questions_data = request.data
-        for question_data in questions_data:
-            options_data = question_data.pop('options')
-            question = Question.objects.create(quiz=quiz, **question_data)
-            for option_data in options_data:
-                Option.objects.create(question=question, **option_data)
-        return Response(status=status.HTTP_201_CREATED)
+                return Response(call_back_data, status=status.HTTP_200_OK)
 
     
     # think about how to define a method

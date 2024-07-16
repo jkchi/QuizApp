@@ -8,7 +8,7 @@ from .models import Question,Option
 
 @admin.register(Option)
 class OptionAdmin(admin.ModelAdmin):
-    list_display = ('text','question','is_answer') 
+    list_display = ('text','question','is_answer','id') 
     list_filter = ['question']
 
 class OptionInlineAdmin(admin.TabularInline):
@@ -18,7 +18,7 @@ class OptionInlineAdmin(admin.TabularInline):
     
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ('text','quiz') 
+    list_display = ('text','quiz','id') 
     list_filter = ['quiz']
     inlines = [OptionInlineAdmin]
     # this parameter control the number of empty field in admin site

@@ -15,4 +15,4 @@ class Quiz(models.Model):
     
     def __str__(self) -> str:
         # access the id attr
-        return f"Quiz: {self.title} (Start: {self.start_time}, End: {self.end_time}, Duration:{self.duration_min}) "
+        return f"Qid:{self.id} Quiz: {self.title} (Start: {self.start_time}, End: {self.end_time}, Duration:{self.duration_min}) "

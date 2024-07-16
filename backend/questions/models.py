@@ -6,8 +6,12 @@ class Question(models.Model):
     text = models.TextField()
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE, related_name = 'questions')
 
+    # def __str__(self) -> str:
+    #     return self.text
     def __str__(self) -> str:
-        return self.text
+        # access the id attr
+        return f"ID:{self.id} Quiz ID: {self.quiz.id} text: {self.text} "
+
     
 class Option(models.Model):
     text = models.CharField(max_length=255)
@@ -18,4 +22,4 @@ class Option(models.Model):
     
     def __str__(self) -> str:
         # access the id attr
-        return f"Qid: {self.question.id} text: {self.text} is_answer: {self.is_answer}"
+        return f"ID:{self.id} Question ID: {self.question.id} text: {self.text} is_answer: {self.is_answer}"
