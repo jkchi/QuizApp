@@ -17,6 +17,10 @@ from questions.models import *
 # all atomic db write
 from django.db import transaction
 
+# support wrong id return 404 method
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import ObjectDoesNotExist
+
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -54,13 +58,17 @@ class QuizViewSet(viewsets.ModelViewSet):
                 question_data['quiz'] = quiz.id
                 
                 if "id" in question_data:
-                    question = Question.objects.get(id=question_data['id'])
                     
-                    # Passing this object to the serializer tells DRF that 
-                    # you intend to update this existing object rather than create a new one.
-                    question_serializer = QuestionSerializer(question, data=question_data)
-                    # remove question id if update a question
-                    existing_question_ids.discard(question_data["id"])
+                    try:
+                        question = Question.objects.get(id=question_data['id'])
+                        # Passing this object to the serializer tells DRF that 
+                        # you intend to update this existing object rather than create a new one.
+                        question_serializer = QuestionSerializer(question, data=question_data)
+                        # remove question id if update a question
+                        existing_question_ids.discard(question_data["id"])
+                    except ObjectDoesNotExist:
+                        errors.append(f"No question found with ID {question_data['id']}")
+                        continue
                 else:
                     question_serializer = QuestionSerializer(data=question_data)
                 
@@ -70,7 +78,8 @@ class QuizViewSet(viewsets.ModelViewSet):
                     question_serializer.save()  
                     call_back_data.append(question_serializer.data)
                 else:
-                    errors.append(question_serializer.errors)
+                    errors.append({'question id': question_data.get('id', 'N/A'), 'error': 'Invalid data provided', 'details': question_serializer.errors})
+
             
             if errors:
                 return Response(errors, status=status.HTTP_400_BAD_REQUEST)
