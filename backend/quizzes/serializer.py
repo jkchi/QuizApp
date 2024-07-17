@@ -10,3 +10,7 @@ class QuizSerializer(serializers.ModelSerializer):
         model = Quiz
         fields = ["id", "title","text","created_at","start_time","duration_min","end_time",'total_score','questions']
 
+class QuizListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Quiz
+        fields = ["id", "title", "text", "created_at", "start_time", "duration_min", "end_time", "total_score"]

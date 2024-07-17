@@ -22,7 +22,7 @@ class QuestionSerializer(serializers.ModelSerializer):
     # when quiz bulk_edit_questions_options use QuestionSerializer
     # since that method belong to a quiz instance
     # the quiz id no longer need to be specified  
-    quiz = serializers.PrimaryKeyRelatedField(queryset=Quiz.objects.all())
+    quiz = serializers.PrimaryKeyRelatedField(queryset=Quiz.objects.all(), required = False)
     class Meta:
         model = Question
         # remove quiz for the same reason

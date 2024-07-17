@@ -1,5 +1,5 @@
 from rest_framework import viewsets,status
-from .serializer import QuizSerializer
+from .serializer import QuizSerializer, QuizListSerializer
 
 # import action to self define api method
 from rest_framework.decorators import action
@@ -36,6 +36,15 @@ class QuizViewSet(viewsets.ModelViewSet):
         else:
             # need to be change to IsAdminUser after testing
             return [AllowAny()]
+        
+    
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return QuizListSerializer
+        elif self.action == 'retrieve':
+            return QuizSerializer  
+        return super().get_serializer_class()
     
     @swagger_auto_schema(
     method='post',
