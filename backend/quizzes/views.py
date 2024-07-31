@@ -22,7 +22,6 @@ from django.shortcuts import get_object_or_404
 from django.core.exceptions import ObjectDoesNotExist
 
 
-
 class QuizViewSet(viewsets.ModelViewSet):
     serializer_class = QuizSerializer
     queryset = Quiz.objects.all()
@@ -38,7 +37,6 @@ class QuizViewSet(viewsets.ModelViewSet):
             return [AllowAny()]
         
     
-    
     def get_serializer_class(self):
         if self.action == 'list':
             return QuizListSerializer
@@ -48,14 +46,14 @@ class QuizViewSet(viewsets.ModelViewSet):
     
     @swagger_auto_schema(
     method='post',
-    request_body=QuestionSerializer(many=True),  # Correct as it expects a list of questions
-    responses={
+    request_body= QuestionSerializer(many=True),  # Correct as it expects a list of questions
+    responses = {
         200: QuestionSerializer(many=True, read_only=True),  # Use 200 OK for successful bulk update
         400: 'Error response'  # Describe the error response format
-    }
+        }
     )    
     @action(detail=True, methods=['post'])
-    def bulk_edit_questions_options(self, request, pk = None):        
+    def questions_options(self, request, pk = None):        
 
         with transaction.atomic():
             quiz = self.get_object()
@@ -63,29 +61,37 @@ class QuizViewSet(viewsets.ModelViewSet):
             questions_data = request.data
             call_back_data = []
             errors = []
+            # question_serializers used to store updated question instance
+            edited_question_serializers = []
             for question_data in questions_data:
                 question_data['quiz'] = quiz.id
                 
                 if "id" in question_data:
+                    qid = question_data['id']
                     
-                    try:
-                        question = Question.objects.get(id=question_data['id'])
+                    if qid not in existing_question_ids:
+                        errors.append(f"No question found with ID {qid}")
+                    else:
+                        question = Question.objects.get(id = qid)
                         # Passing this object to the serializer tells DRF that 
                         # you intend to update this existing object rather than create a new one.
                         question_serializer = QuestionSerializer(question, data=question_data)
                         # remove question id if update a question
-                        existing_question_ids.discard(question_data["id"])
-                    except ObjectDoesNotExist:
-                        errors.append(f"No question found with ID {question_data['id']}")
-                        continue
+                        existing_question_ids.discard(qid)
+
                 else:
                     question_serializer = QuestionSerializer(data=question_data)
                 
                 if question_serializer.is_valid():
-                
-                    # call serializer.create/update based on if question id in request
-                    question_serializer.save()  
-                    call_back_data.append(question_serializer.data)
+                    # save the updated instance and only perform update
+                    # if all serializer is_valid
+                    edited_question_serializers.append(question_serializer)
+                    
+                    # call save later
+                    # question_serializer.save() 
+                    # call back can not be called after access data 
+                    # call_back_data.append(question_serializer.data)
+                    
                 else:
                     errors.append({'question id': question_data.get('id', 'N/A'), 'error': 'Invalid data provided', 'details': question_serializer.errors})
 
@@ -95,7 +101,13 @@ class QuizViewSet(viewsets.ModelViewSet):
             else:
                 for left_question_id in existing_question_ids:
                     Question.objects.get(id=left_question_id).delete()
-
+                    
+                # only save the question instance after 
+                # all serializers are valid
+                # and append the serializer data to call back
+                for question_serializer in edited_question_serializers:
+                    question_serializer.save()
+                    call_back_data.append(question_serializer.data)
                 return Response(call_back_data, status=status.HTTP_200_OK)
 
     
