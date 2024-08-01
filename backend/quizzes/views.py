@@ -1,5 +1,5 @@
 from rest_framework import viewsets,status
-from .serializer import QuizSerializer, QuizListSerializer
+from .serializer import QuizSerializer, QuizListSerializer,StudentQuizSerializer
 
 # import action to self define api method
 from rest_framework.decorators import action
@@ -18,8 +18,8 @@ from questions.models import *
 from django.db import transaction
 
 # support wrong id return 404 method
-from django.shortcuts import get_object_or_404
-from django.core.exceptions import ObjectDoesNotExist
+# from django.shortcuts import get_object_or_404
+# from django.core.exceptions import ObjectDoesNotExist
 
 
 class QuizViewSet(viewsets.ModelViewSet):
@@ -38,6 +38,15 @@ class QuizViewSet(viewsets.ModelViewSet):
         
     
     def get_serializer_class(self):
+        
+        # if the current user is not staff
+        # return the student serializer 
+        # the is_answer is not contained
+        if not self.request.user.is_staff:
+            return StudentQuizSerializer
+        
+        # else teacher is the admin
+        # return the admin serializer 
         if self.action == 'list':
             return QuizListSerializer
         elif self.action == 'retrieve':
@@ -111,6 +120,4 @@ class QuizViewSet(viewsets.ModelViewSet):
                 return Response(call_back_data, status=status.HTTP_200_OK)
 
     
-    # think about how to define a method
-    # 1. prevent student from getting not released quiz
-    # def get_questions(self, request, pk=None):
+    

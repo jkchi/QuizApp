@@ -19,7 +19,7 @@ class QuestionSerializer(serializers.ModelSerializer):
     options = OptionSerializer(many=True,required=False)
     
     # add quiz id to be null 
-    # when quiz bulk_edit_questions_options use QuestionSerializer
+    # when quiz_{quiz_id}_questions_options use QuestionSerializer
     # since that method belong to a quiz instance
     # the quiz id no longer need to be specified  
     quiz = serializers.PrimaryKeyRelatedField(queryset=Quiz.objects.all(), required = False)
@@ -64,3 +64,36 @@ class QuestionSerializer(serializers.ModelSerializer):
         for left_option_id in existing_option_ids:
             Option.objects.get(id=left_option_id).delete()
         return instance
+
+
+class StudentOptionSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Option
+        fields = ["id", "text"]
+
+class StudentQuestionSerializer(serializers.ModelSerializer):
+    options = StudentOptionSerializer(many = True)
+    
+    class Meta:
+        model = Question
+        # not include quiz id
+        # since this StudentQuestionSerializer is only used in get
+        fields = ["id", "text","options"]
+
+
+class ValidateOptionSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = Option
+        fields = ["id"]
+
+class ValidateQuestionSerializer(serializers.ModelSerializer):
+    options = StudentOptionSerializer(many = False)
+    
+    class Meta:
+        model = Question
+        # not include quiz id
+        # since this StudentQuestionSerializer is only used in get
+        fields = ["id"]
+        

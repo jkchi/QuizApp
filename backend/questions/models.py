@@ -14,7 +14,7 @@ class Question(models.Model):
 
     
 class Option(models.Model):
-    text = models.CharField(max_length=55)
+    text = models.CharField(max_length=255)
     # question to option : one to many
     # id will be added as a instance attr, so the col should be named question
     question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name = 'options')
