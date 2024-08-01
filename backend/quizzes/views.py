@@ -24,8 +24,15 @@ from django.db import transaction
 
 class QuizViewSet(viewsets.ModelViewSet):
     serializer_class = QuizSerializer
-    queryset = Quiz.objects.all()
     
+    # notice dynamic queryset 
+    # the basename in url.py need to be assigned  
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Quiz.objects.all()
+        else:
+            return Quiz.objects.filter(is_published=True)
     
     # method overloaded to diy auth    
     def get_permissions(self):

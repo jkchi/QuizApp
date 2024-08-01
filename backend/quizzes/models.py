@@ -11,6 +11,7 @@ class Quiz(models.Model):
     start_time = models.DateTimeField(help_text="The earliest time the quiz can start")
     duration_min = models.IntegerField(default=10, help_text="The duration of the quiz in minutes set by admin")
     end_time = models.DateTimeField(help_text="The latest time the quiz can be submitted")
+    is_published = models.BooleanField(default = False)
     
     
     def __str__(self) -> str:
