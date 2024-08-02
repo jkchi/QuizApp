@@ -10,12 +10,15 @@ from rest_framework.response import Response
 
 # api doc generation schema
 from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from questions.serializer import QuestionSerializer
 from questions.models import *
 
 # all atomic db write
 from django.db import transaction
+
+from django.utils import timezone
 
 # support wrong id return 404 method
 # from django.shortcuts import get_object_or_404
@@ -64,8 +67,8 @@ class QuizViewSet(viewsets.ModelViewSet):
     method='post',
     request_body= QuestionSerializer(many=True),  # Correct as it expects a list of questions
     responses = {
-        200: QuestionSerializer(many=True, read_only=True),  # Use 200 OK for successful bulk update
-        400: 'Error response'  # Describe the error response format
+        200: QuestionSerializer(many=True, read_only=True),  
+        400: 'Error response' 
         }
     )    
     @action(detail=True, methods=['post'])
@@ -128,3 +131,120 @@ class QuizViewSet(viewsets.ModelViewSet):
 
     
     
+    @swagger_auto_schema(
+        method='post',
+        operation_description="Validate quiz answers",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'id': openapi.Schema(type=openapi.TYPE_INTEGER, description='Question ID'),
+                    'option': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(type=openapi.TYPE_INTEGER),
+                        description='Selected Options ID'
+                    )
+                },
+                required=['id', 'option']
+            )
+        ),
+        responses={
+            200: openapi.Response(
+                description="Validation results",
+                examples={
+                    "application/json": {
+                        "score": 80,
+                        "question_info": [
+                            {"id": 1, "is_correct": True, "correct_option_id": [1]},
+                            {"id": 2, "is_correct": False, "correct_option_id": [3, 4]}
+                        ],
+                        "error": []
+                    }
+                }
+            ),
+            400: openapi.Response(description="Bad Request"),
+            403: openapi.Response(description="Forbidden")
+        }
+    )
+    @action(detail=True, methods=['post'])
+    def validation(self, request, pk = None): 
+        user = request.user
+        quiz = self.get_object()
+        current_time = timezone.now()
+        score = quiz.total_score
+        question_count = quiz.questions.count()
+        
+        if question_count == 0:
+            return Response({'error': 'No questions available in the quiz.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        
+        # check if quiz published
+        if not quiz.is_published:
+            return Response({'error': 'Quiz is not published.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # check submit time is allowed
+        if not (quiz.start_time <= current_time <= quiz.end_time):
+            return Response({'error': 'Current time is not within the allowed start and end time.'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # check submit data is list
+        if not (isinstance(request.data, list)):
+            return Response({'error': 'The request data is not array'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # call_back_items form
+        # key: question id
+        # value: {is_correct : False, correct_answer_id:[]}
+        call_back_items = {}
+        
+        call_back_error_data = []
+        
+        for question in quiz.questions.all():
+            call_back_items[question.id] = {"is_correct" : False, "correct_option_id" : []}
+            for option in question.options.all():
+                if option.is_answer == True:
+                    call_back_items[question.id]["correct_option_id"].append(option.id)
+
+        # request data form
+        # [id: question id , option: [selected options]]
+        questions_response_data = request.data
+        correct_question_count = 0
+        
+        for data in questions_response_data:
+            qid = data.get('id')
+
+            options = data.get('option')
+            
+            if qid is None or not isinstance(options, list):
+                continue  
+            
+            if qid in call_back_items:
+                correct_answer_set = set(call_back_items[qid]["correct_option_id"])
+                
+                # check in the inputted options is int
+                try:
+                    student_option_set = set(map(int, options))
+                except ValueError:
+                    call_back_error_data.append({'id':qid,'error': 'Invalid data format for options.'})
+                    continue
+                
+                if correct_answer_set == student_option_set:
+                    if call_back_items[qid]["is_correct"] == False:
+                        correct_question_count += 1
+                        call_back_items[qid]["is_correct"] = True
+
+        call_back_question_info_data = []
+        # extract qid from the call_back_items key
+        # add add it to its value to form a question answer status info obj
+        # and save in call_back_data to return 
+        for question_id in call_back_items:
+            call_back_item = call_back_items[question_id]
+            call_back_item['id'] = question_id
+            call_back_question_info_data.append(call_back_item)
+            
+        final_score = (correct_question_count / question_count) * score
+        
+        return Response({
+            'score': final_score,
+            'question_info': call_back_question_info_data,
+            'error':call_back_error_data
+        }, status=status.HTTP_200_OK)
