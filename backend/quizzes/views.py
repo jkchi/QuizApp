@@ -1,29 +1,31 @@
-from rest_framework import viewsets,status
-from .serializer import QuizSerializer, QuizListSerializer,StudentQuizSerializer
-
-# import action to self define api method
-from rest_framework.decorators import action
-
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+# import model
 from .models import Quiz
-from rest_framework.response import Response
+from django.contrib.auth.models import User
+from submissions.models import Submission
+from questions.models import *
 
-# api doc generation schema
+# import serializer
+from .serializer import QuizSerializer, QuizListSerializer,StudentQuizSerializer
+from questions.serializer import QuestionSerializer
+
+
+# import api doc func tool
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
-from questions.serializer import QuestionSerializer
-from questions.models import *
+# import Util
+from rest_framework import viewsets,status
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.response import Response
+from django.utils import timezone
 
 # all atomic db write
 from django.db import transaction
 
-from django.utils import timezone
-
 # support wrong id return 404 method
 # from django.shortcuts import get_object_or_404
 # from django.core.exceptions import ObjectDoesNotExist
-
 
 class QuizViewSet(viewsets.ModelViewSet):
     serializer_class = QuizSerializer
@@ -62,6 +64,31 @@ class QuizViewSet(viewsets.ModelViewSet):
         elif self.action == 'retrieve':
             return QuizSerializer  
         return super().get_serializer_class()
+    
+    def create(self, request, *args, **kwargs):
+        with transaction.atomic():
+            response = super().create(request, *args, **kwargs)
+            quiz = self.get_object()
+
+            # student are the non admins
+            students = User.objects.filter(is_staff=False) 
+
+            # create empty submissions for each student
+            # allow dashboard edit
+            submissions = [
+                Submission(
+                    quiz=quiz,
+                    student=student,
+                    score=0,
+                    attendance_status=False,  
+                    submitted_at=None  
+                )
+                for student in students
+            ]
+
+            Submission.objects.bulk_create(submissions)  
+
+        return response
     
     @swagger_auto_schema(
     method='post',
@@ -175,9 +202,13 @@ class QuizViewSet(viewsets.ModelViewSet):
         score = quiz.total_score
         question_count = quiz.questions.count()
         
+        # check if a student has submitted the quiz
+        if Submission.objects.filter(quiz=quiz, student=user).exists():
+            return Response({'error': 'You have already submitted the quiz'}, status=status.HTTP_403_FORBIDDEN)
+    
+        # check if the quiz is submittable
         if question_count == 0:
             return Response({'error': 'No questions available in the quiz.'}, status=status.HTTP_400_BAD_REQUEST)
-
         
         # check if quiz published
         if not quiz.is_published:
@@ -243,8 +274,24 @@ class QuizViewSet(viewsets.ModelViewSet):
             
         final_score = (correct_question_count / question_count) * score
         
-        return Response({
+        Submission.objects.create(
+        quiz=quiz,
+        student=user,
+        score=final_score,
+        attendance_status=True,  
+        submitted_at=current_time
+        )
+        
+        # if the api call is successful 
+        # the error should be a empty string
+        call_back_main = {
             'score': final_score,
             'question_info': call_back_question_info_data,
-            'error':call_back_error_data
-        }, status=status.HTTP_200_OK)
+            "error" : "",
+            'error_data':call_back_error_data
+        }
+        
+        if len(call_back_error_data) > 0 :
+            call_back_main["error"] = "Invalid data sent in API call"
+        
+        return Response(call_back_main, status=status.HTTP_200_OK)

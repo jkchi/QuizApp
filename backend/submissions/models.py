@@ -10,7 +10,7 @@ class Submission(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
     attendance_status = models.BooleanField(default=True)
     score = models.FloatField(default=0)  
-    submitted_at = models.DateTimeField(default=timezone.now)  # 添加默认值
+    submitted_at = models.DateTimeField(null=True, default=None) 
 
     def __str__(self) -> str:
         return f"Submission by {self.student.username} for {self.quiz.title} with score {self.score}"
