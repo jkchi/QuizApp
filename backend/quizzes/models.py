@@ -6,7 +6,7 @@ from django.utils import timezone
 class Quiz(models.Model):
     title = models.CharField(max_length=100)
     text = models.TextField()    
-    total_score = models.IntegerField(default=0)
+    total_score = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(default=timezone.now)
     start_time = models.DateTimeField(help_text="The earliest time the quiz can start")
     duration_min = models.IntegerField(default=10, help_text="The duration of the quiz in minutes set by admin")

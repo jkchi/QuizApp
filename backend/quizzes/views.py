@@ -5,7 +5,7 @@ from submissions.models import Submission
 from questions.models import *
 
 # import serializer
-from .serializer import QuizSerializer, QuizListSerializer,StudentQuizSerializer
+from .serializer import QuizSerializer, QuizListSerializer,StudentQuizSerializer,QuizCreateSerializer
 from questions.serializer import QuestionSerializer
 
 
@@ -63,13 +63,23 @@ class QuizViewSet(viewsets.ModelViewSet):
             return QuizListSerializer
         elif self.action == 'retrieve':
             return QuizSerializer  
+        elif self.action == 'create':
+            return QuizCreateSerializer
         return super().get_serializer_class()
     
+    @swagger_auto_schema(
+    request_body= QuizCreateSerializer()  # Correct as it expects a list of questions
+    )    
     def create(self, request, *args, **kwargs):
+        print('func called here')
         with transaction.atomic():
+            print('op started')
             response = super().create(request, *args, **kwargs)
-            quiz = self.get_object()
-
+            
+            # get the quiz_id just assigned
+            quiz_id = response.data['id']
+            quiz = Quiz.objects.get(id=quiz_id)
+            print('in here')
             # student are the non admins
             students = User.objects.filter(is_staff=False) 
 

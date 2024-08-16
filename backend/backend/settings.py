@@ -46,7 +46,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'accounts.apps.AccountsConfig'
+    'accounts.apps.AccountsConfig',
     # documentation generation
     'drf_yasg',
     'rest_framework',
@@ -57,8 +57,7 @@ INSTALLED_APPS = [
     
     "quizzes",
     "questions",
-    "accounts",
-    
+    "submissions",
     # social login to be added
 ]
 
