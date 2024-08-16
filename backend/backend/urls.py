@@ -40,6 +40,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('questions.urls')),
     path('api/quizzes/', include('quizzes.urls')),
+    path('api/submissions/', include('submissions.urls')),
     # api doc url, two ui
     # path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
