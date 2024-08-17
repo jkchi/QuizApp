@@ -1,9 +1,18 @@
 from rest_framework import viewsets
 from .serializer import SubmissionSerializer
 from .models import Submission
+from rest_framework.permissions import IsAuthenticated, AllowAny,IsAdminUser
 # Create your views here.
 class SubmissionViewSet(viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
+    permission_classes = [IsAdminUser]
+    
+    def get_permissions(self):
+        if self.action == 'list':
+            return [IsAuthenticated()] 
+        else:
+            # need to be change to IsAdminUser after testing
+            return [IsAdminUser()]
     
     def get_queryset(self):
         user = self.request.user
