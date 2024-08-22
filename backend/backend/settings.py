@@ -36,6 +36,23 @@ DEBUG = True
 # IMPORTANT need to be changed in production
 ALLOWED_HOSTS = ["*"]
 
+# define how the api call will be authenticated
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
+SIMPLE_JWT = {
+    # token needed to access roots
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    # token needed to regenerate the access token
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
+
 
 # Application definition
 
@@ -65,9 +82,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    # important
-    # it need to be turned on after testing
-    # 'django.middleware.csrf.CsrfViewMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',

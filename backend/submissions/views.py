@@ -10,6 +10,8 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action == 'list':
             return [IsAuthenticated()] 
+        elif self.action == 'retrieve':
+            return [IsAuthenticated()] 
         else:
             # need to be change to IsAdminUser after testing
             return [IsAdminUser()]

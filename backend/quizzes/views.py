@@ -16,7 +16,7 @@ from drf_yasg import openapi
 # import Util
 from rest_framework import viewsets,status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.utils import timezone
 
@@ -43,10 +43,12 @@ class QuizViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         # need to be change to IsAuthenticated after testing
         if self.action == 'retrieve':
-            return [AllowAny()] 
+            return [IsAuthenticated()] 
+        elif self.action == 'list':
+            return [IsAuthenticated()] 
         else:
             # need to be change to IsAdminUser after testing
-            return [AllowAny()]
+            return [IsAdminUser()]
         
     
     def get_serializer_class(self):
@@ -71,15 +73,14 @@ class QuizViewSet(viewsets.ModelViewSet):
     request_body= QuizCreateSerializer()  # Correct as it expects a list of questions
     )    
     def create(self, request, *args, **kwargs):
-        print('func called here')
+        
         with transaction.atomic():
-            print('op started')
             response = super().create(request, *args, **kwargs)
             
             # get the quiz_id just assigned
             quiz_id = response.data['id']
             quiz = Quiz.objects.get(id=quiz_id)
-            print('in here')
+            
             # student are the non admins
             students = User.objects.filter(is_staff=False) 
 
@@ -108,7 +109,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         400: 'Error response' 
         }
     )    
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def questions_options(self, request, pk = None):        
 
         with transaction.atomic():
@@ -204,7 +205,7 @@ class QuizViewSet(viewsets.ModelViewSet):
             403: openapi.Response(description="Forbidden")
         }
     )
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def validation(self, request, pk = None): 
         user = request.user
         quiz = self.get_object()
@@ -284,13 +285,11 @@ class QuizViewSet(viewsets.ModelViewSet):
             
         final_score = (correct_question_count / question_count) * score
         
-        Submission.objects.create(
-        quiz=quiz,
-        student=user,
-        score=final_score,
-        attendance_status=True,  
-        submitted_at=current_time
-        )
+        submission = Submission.objects.get(student=user, quiz=quiz)
+        submission.score = final_score
+        submission.attendance_status = True
+        submission.submitted_at=current_time
+        submission.save()
         
         # if the api call is successful 
         # the error should be a empty string
