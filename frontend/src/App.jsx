@@ -6,7 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import SignIn from "./components/auth/SignIn";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/dashboard/index.jsx";
 
 const ProtectedRoute = ({ isAuthenticated, children }) => {
   if (!isAuthenticated) {

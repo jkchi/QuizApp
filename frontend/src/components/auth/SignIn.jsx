@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import styles from "./SignIn.module.css";
 
 const SignIn = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const SignIn = ({ setIsAuthenticated }) => {
   };
 
   return (
-    <div>
+    <div className={styles.container}>
       <h1>Sign In</h1>
       <button onClick={handleSignIn}>Sign In</button>
     </div>
