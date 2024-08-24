@@ -10,6 +10,7 @@ class Submission(models.Model):
     student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='submissions')
     attendance_status = models.BooleanField(default=True)
     score = models.FloatField(default=0)  
+    started_at = models.DateTimeField(null=True, default=None) 
     submitted_at = models.DateTimeField(null=True, default=None) 
 
     def __str__(self) -> str:

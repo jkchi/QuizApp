@@ -41,7 +41,6 @@ class QuizViewSet(viewsets.ModelViewSet):
     
     # method overloaded to diy auth    
     def get_permissions(self):
-        # need to be change to IsAuthenticated after testing
         if self.action == 'retrieve':
             return [IsAuthenticated()] 
         elif self.action == 'list':
@@ -100,6 +99,23 @@ class QuizViewSet(viewsets.ModelViewSet):
             Submission.objects.bulk_create(submissions)  
 
         return response
+    
+    def retrieve(self, request, *args, **kwargs):
+        quiz = self.get_object()
+        user = request.user
+
+        current_time = timezone.now()
+        submission = Submission.objects.get(student=user, quiz=quiz)
+        if submission.started_at == None:
+            submission.update(started_at=current_time)
+        
+        # make admin user could retrieve quiz and update started_at 
+        # without limitation 
+        if user.is_staff:
+            submission.update(started_at=current_time)
+
+        serializer = self.get_serializer(quiz)
+        return Response(serializer.data)
     
     @swagger_auto_schema(
     method='post',
@@ -212,9 +228,22 @@ class QuizViewSet(viewsets.ModelViewSet):
         current_time = timezone.now()
         score = quiz.total_score
         question_count = quiz.questions.count()
+        submission = Submission.objects.get(student=user, quiz=quiz)
+        
+        # check if a student not retrieve the quiz
+        # but make a submission
+        if not submission.started_at:
+            return Response({'error': 'Quiz info not retrieved when try to submit .'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # check is the time_elapsed is passed
+        if submission.started_at:
+            time_elapsed = current_time - submission.started_at
+            if quiz.duration_min and time_elapsed.total_seconds() > quiz.duration_min * 60 + 3:
+                return Response({'error': 'Submission time has expired.'}, status=status.HTTP_403_FORBIDDEN)
         
         # check if a student has submitted the quiz
-        if Submission.objects.filter(quiz=quiz, student=user).exists():
+        # allow admin to submit without limitation
+        if submission.submitted_at and not user.is_staff:
             return Response({'error': 'You have already submitted the quiz'}, status=status.HTTP_403_FORBIDDEN)
     
         # check if the quiz is submittable
@@ -285,7 +314,6 @@ class QuizViewSet(viewsets.ModelViewSet):
             
         final_score = (correct_question_count / question_count) * score
         
-        submission = Submission.objects.get(student=user, quiz=quiz)
         submission.score = final_score
         submission.attendance_status = True
         submission.submitted_at=current_time

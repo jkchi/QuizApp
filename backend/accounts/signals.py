@@ -10,7 +10,7 @@ User = get_user_model()
 # when some quizzes are published
 @receiver(post_save, sender=User)
 def create_submissions_for_new_user(sender, instance, created, **kwargs):
-    if created and not instance.is_staff:
+    if created:
         quizzes = Quiz.objects.all()
 
         submissions = [
