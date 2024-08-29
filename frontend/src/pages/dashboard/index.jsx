@@ -1,3 +1,4 @@
+import Content from "../../components/dashboard/Content";
 import Header from "../../components/dashboard/Header";
 import styles from "./index.module.css";
 
@@ -10,10 +11,7 @@ const Dashboard = () => {
   return (
     <div className={styles.container}>
       <Header userName="John Doe" handleLogout={handleLogout} />
-      <div className={styles.content}>
-        <h1>Dashboard</h1>
-        <p>Welcome to the dashboard!</p>
-      </div>
+      <Content />
     </div>
   );
 };

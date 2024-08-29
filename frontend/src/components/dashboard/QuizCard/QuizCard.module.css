@@ -1,0 +1,114 @@
+.container {
+  padding: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.card {
+  border-radius: 8px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: default;
+}
+
+.card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.cardContent {
+  color: #333;
+  font-family: "Roboto", sans-serif;
+}
+
+.infoLine {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.label {
+  font-size: 1em;
+  font-weight: 500;
+  color: #666;
+  margin-right: 8px;
+}
+
+.number {
+  font-size: 1.5em;
+  font-weight: bold;
+  color: #1890ff;
+}
+
+.unit {
+  font-size: 1em;
+  color: #999;
+  margin-left: 4px;
+}
+
+.countdown {
+  font-size: 1.2em;
+  font-weight: 600;
+  color: #d9534f;
+}
+
+.startButton {
+  background-color: #1890ff;
+  border-color: #1890ff;
+  color: #ffffff;
+  font-weight: 600;
+  /* width: 100%; */
+  cursor: pointer; /* Cursor when button is enabled */
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.startButton:hover {
+  background-color: #167ac6;
+  border-color: #167ac6;
+}
+
+/* Styles for disabled button */
+.startButton:disabled {
+  background-color: #d9d9d9; /* Grey background for disabled button */
+  border-color: #d9d9d9;
+  color: #a9a9a9; /* Lighter text color */
+  cursor: not-allowed; /* Default cursor for disabled button */
+}
+
+/* Ensure the button does not change on hover when disabled */
+.startButton:disabled:hover {
+  background-color: #d9d9d9;
+  border-color: #d9d9d9;
+  color: #a9a9a9;
+  cursor: not-allowed;
+}
+
+@media (max-width: 576px) {
+  .container {
+    padding: 10px;
+  }
+
+  .cardContent {
+    padding: 12px;
+  }
+
+  .infoLine {
+    margin-bottom: 8px;
+  }
+
+  .label {
+    font-size: 0.9em;
+  }
+
+  .number {
+    font-size: 1.3em;
+  }
+
+  .countdown {
+    font-size: 1em;
+  }
+}
