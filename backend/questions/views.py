@@ -16,7 +16,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
     queryset = Question.objects.all()
     
     # need to be change to IsAdminUser after testing
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
     
     
 class OptionViewSet(viewsets.ModelViewSet):
@@ -24,7 +24,7 @@ class OptionViewSet(viewsets.ModelViewSet):
     queryset = Option.objects.all()
     
     # need to be change to IsAdminUser after testing
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
     
     
     @swagger_auto_schema(

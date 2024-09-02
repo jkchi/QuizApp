@@ -16,7 +16,7 @@ from drf_yasg import openapi
 # import Util
 from rest_framework import viewsets,status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.utils import timezone
 
@@ -41,12 +41,10 @@ class QuizViewSet(viewsets.ModelViewSet):
     
     # method overloaded to diy auth    
     def get_permissions(self):
-        # need to be change to IsAuthenticated after testing
-        if self.action == 'retrieve':
-            return [AllowAny()] 
+        if self.action == 'retrieve' or self.action == 'list' or self.action == 'validation':
+            return [IsAuthenticated()] 
         else:
-            # need to be change to IsAdminUser after testing
-            return [AllowAny()]
+            return [IsAdminUser()]
         
     
     def get_serializer_class(self):
@@ -71,19 +69,16 @@ class QuizViewSet(viewsets.ModelViewSet):
     request_body= QuizCreateSerializer()  # Correct as it expects a list of questions
     )    
     def create(self, request, *args, **kwargs):
-        print('func called here')
+        print("Create method called")
         with transaction.atomic():
-            print('op started')
             response = super().create(request, *args, **kwargs)
             
             # get the quiz_id just assigned
             quiz_id = response.data['id']
             quiz = Quiz.objects.get(id=quiz_id)
-            print('in here')
-            # student are the non admins
-            students = User.objects.filter(is_staff=False) 
-
-            # create empty submissions for each student
+            
+            students = User.objects.all()
+            # create empty submissions for all
             # allow dashboard edit
             submissions = [
                 Submission(
@@ -100,6 +95,25 @@ class QuizViewSet(viewsets.ModelViewSet):
 
         return response
     
+    def retrieve(self, request, *args, **kwargs):
+        quiz = self.get_object()
+        user = request.user
+
+        current_time = timezone.now()
+        submission = Submission.objects.get(student=user, quiz=quiz)
+        if submission.started_at == None:
+            submission.started_at = current_time
+            submission.save()
+        
+        # make admin user could retrieve quiz and update started_at 
+        # without limitation 
+        elif user.is_staff:
+            submission.started_at = current_time
+            submission.save()
+
+        serializer = self.get_serializer(quiz)
+        return Response(serializer.data)
+    
     @swagger_auto_schema(
     method='post',
     request_body= QuestionSerializer(many=True),  # Correct as it expects a list of questions
@@ -108,7 +122,7 @@ class QuizViewSet(viewsets.ModelViewSet):
         400: 'Error response' 
         }
     )    
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def questions_options(self, request, pk = None):        
 
         with transaction.atomic():
@@ -211,9 +225,22 @@ class QuizViewSet(viewsets.ModelViewSet):
         current_time = timezone.now()
         score = quiz.total_score
         question_count = quiz.questions.count()
+        submission = Submission.objects.get(student=user, quiz=quiz)
+        
+        # check if a student not retrieve the quiz
+        # but make a submission
+        if not submission.started_at:
+            return Response({'error': 'Quiz info not retrieved when try to submit .'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # check is the time_elapsed is passed
+        if submission.started_at:
+            time_elapsed = current_time - submission.started_at
+            if quiz.duration_min and time_elapsed.total_seconds() > quiz.duration_min * 60 + 3:
+                return Response({'error': 'Submission time has expired.'}, status=status.HTTP_403_FORBIDDEN)
         
         # check if a student has submitted the quiz
-        if Submission.objects.filter(quiz=quiz, student=user).exists():
+        # allow admin to submit without limitation
+        if submission.submitted_at and not user.is_staff:
             return Response({'error': 'You have already submitted the quiz'}, status=status.HTTP_403_FORBIDDEN)
     
         # check if the quiz is submittable
@@ -284,13 +311,10 @@ class QuizViewSet(viewsets.ModelViewSet):
             
         final_score = (correct_question_count / question_count) * score
         
-        Submission.objects.create(
-        quiz=quiz,
-        student=user,
-        score=final_score,
-        attendance_status=True,  
-        submitted_at=current_time
-        )
+        submission.score = final_score
+        submission.attendance_status = True
+        submission.submitted_at=current_time
+        submission.save()
         
         # if the api call is successful 
         # the error should be a empty string

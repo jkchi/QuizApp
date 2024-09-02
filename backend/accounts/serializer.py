@@ -30,3 +30,9 @@ class UserSerializer(serializers.ModelSerializer):
         # hold the security issue for user
         user = User.objects.create_user(**validated_data)
         return user
+    
+class UserListSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'first_name', 'last_name', 'email']
