@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
-from rest_framework import generics
-from .serializer import UserSerializer
-from rest_framework.permissions import AllowAny
+from rest_framework import generics,viewsets
+from .serializer import UserSerializer,UserListSerializer
+from rest_framework.permissions import IsAdminUser,AllowAny
 
 class CreateUserView(generics.CreateAPIView):
     # create a create view inherent from the rest framework CreateAPIView
@@ -15,3 +15,8 @@ class CreateUserView(generics.CreateAPIView):
 
     # define the permission of the view, and it is open to all the people
     permission_classes = [AllowAny]
+    
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserListSerializer
+    permission_classes = [IsAdminUser]

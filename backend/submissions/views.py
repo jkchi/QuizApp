@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from .serializer import SubmissionSerializer
 from .models import Submission
-from rest_framework.permissions import IsAuthenticated, AllowAny,IsAdminUser
+from rest_framework.permissions import IsAuthenticated,IsAdminUser
 # Create your views here.
 class SubmissionViewSet(viewsets.ModelViewSet):
     serializer_class = SubmissionSerializer
@@ -18,6 +18,11 @@ class SubmissionViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
+        
+        # use to disable the doc bug
+        if getattr(self, 'swagger_fake_view', False):
+            return Submission.objects.none()
+        
         if user.is_staff:
             return Submission.objects.all()
         else:

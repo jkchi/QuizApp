@@ -41,12 +41,9 @@ class QuizViewSet(viewsets.ModelViewSet):
     
     # method overloaded to diy auth    
     def get_permissions(self):
-        if self.action == 'retrieve':
-            return [IsAuthenticated()] 
-        elif self.action == 'list':
+        if self.action == 'retrieve' or self.action == 'list' or self.action == 'validation':
             return [IsAuthenticated()] 
         else:
-            # need to be change to IsAdminUser after testing
             return [IsAdminUser()]
         
     
@@ -72,7 +69,7 @@ class QuizViewSet(viewsets.ModelViewSet):
     request_body= QuizCreateSerializer()  # Correct as it expects a list of questions
     )    
     def create(self, request, *args, **kwargs):
-        
+        print("Create method called")
         with transaction.atomic():
             response = super().create(request, *args, **kwargs)
             
@@ -80,10 +77,8 @@ class QuizViewSet(viewsets.ModelViewSet):
             quiz_id = response.data['id']
             quiz = Quiz.objects.get(id=quiz_id)
             
-            # student are the non admins
-            students = User.objects.filter(is_staff=False) 
-
-            # create empty submissions for each student
+            students = User.objects.all()
+            # create empty submissions for all
             # allow dashboard edit
             submissions = [
                 Submission(
@@ -107,12 +102,14 @@ class QuizViewSet(viewsets.ModelViewSet):
         current_time = timezone.now()
         submission = Submission.objects.get(student=user, quiz=quiz)
         if submission.started_at == None:
-            submission.update(started_at=current_time)
+            submission.started_at = current_time
+            submission.save()
         
         # make admin user could retrieve quiz and update started_at 
         # without limitation 
-        if user.is_staff:
-            submission.update(started_at=current_time)
+        elif user.is_staff:
+            submission.started_at = current_time
+            submission.save()
 
         serializer = self.get_serializer(quiz)
         return Response(serializer.data)
@@ -221,7 +218,7 @@ class QuizViewSet(viewsets.ModelViewSet):
             403: openapi.Response(description="Forbidden")
         }
     )
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'])
     def validation(self, request, pk = None): 
         user = request.user
         quiz = self.get_object()
